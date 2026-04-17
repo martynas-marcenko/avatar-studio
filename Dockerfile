@@ -48,12 +48,9 @@ RUN pip install -q flash-attn
 # Copy handler
 COPY runpod_handler.py /app/runpod_handler.py
 
-# Download models (this will take a while)
-RUN mkdir -p ~/.avatar-studio/models && \
-    python3 -c "from huggingface_hub import snapshot_download; \
-    snapshot_download('Wan-AI/Wan2.1-I2V-14B-480P', local_dir='/root/.avatar-studio/models/Wan2.1-I2V-14B-480P'); \
-    snapshot_download('TencentGameMate/chinese-wav2vec2-base', local_dir='/root/.avatar-studio/models/chinese-wav2vec2-base'); \
-    snapshot_download('MeiGen-AI/InfiniteTalk', local_dir='/root/.avatar-studio/models/InfiniteTalk')"
+# Models will be downloaded on first request and cached
+# (avoids 44GB download during build)
+RUN mkdir -p /root/.avatar-studio/models
 
 # Start RunPod handler
 CMD ["python", "-u", "/app/runpod_handler.py"]

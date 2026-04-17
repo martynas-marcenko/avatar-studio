@@ -8,9 +8,48 @@ from pathlib import Path
 from typing import Any
 import logging
 import runpod
+from huggingface_hub import snapshot_download
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+_models_cached = False
+
+def _ensure_models_downloaded():
+    """Download models on first request if not already cached."""
+    global _models_cached
+    if _models_cached:
+        return
+
+    models_dir = Path.home() / ".avatar-studio/models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+
+    models = [
+        ('Wan-AI/Wan2.1-I2V-14B-480P', 'Wan2.1-I2V-14B-480P'),
+        ('TencentGameMate/chinese-wav2vec2-base', 'chinese-wav2vec2-base'),
+        ('MeiGen-AI/InfiniteTalk', 'InfiniteTalk'),
+    ]
+
+    for repo_id, model_name in models:
+        model_path = models_dir / model_name
+        if model_path.exists():
+            logger.info(f"Model {model_name} already cached")
+            continue
+
+        logger.info(f"Downloading {model_name} from {repo_id}...")
+        try:
+            snapshot_download(
+                repo_id=repo_id,
+                local_dir=str(model_path),
+                repo_type='model'
+            )
+            logger.info(f"✓ Downloaded {model_name}")
+        except Exception as e:
+            logger.error(f"Failed to download {model_name}: {e}")
+            raise
+
+    _models_cached = True
+    logger.info("All models ready")
 
 
 def handler(job):
@@ -29,6 +68,7 @@ def handler(job):
     }
     """
     try:
+        _ensure_models_downloaded()
         job_input = job["input"]
         logger.info(f"Processing job: {job['id']}")
 
