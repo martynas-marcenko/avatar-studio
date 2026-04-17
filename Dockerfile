@@ -43,7 +43,9 @@ RUN pip install -q \
     easydict \
     xfuser
 # Install flash-attn separately (requires torch from previous step)
-RUN pip install -q flash-attn
+# Use --no-build-isolation so setup.py can import the already-installed torch
+RUN pip install -q packaging ninja && \
+    pip install -q flash-attn --no-build-isolation
 
 # Copy handler
 COPY runpod_handler.py /app/runpod_handler.py
