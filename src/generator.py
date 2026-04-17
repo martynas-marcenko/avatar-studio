@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 from loguru import logger
+from huggingface_hub import snapshot_download
 from .config import Config
 
 
@@ -30,7 +31,7 @@ class AvatarGenerator:
         logger.info('Checking models...')
 
         models = [
-            ('wan_i2v', f'Wan-AI/Wan2.1-I2V-14B-480P'),
+            ('wan_i2v', 'Wan-AI/Wan2.1-I2V-14B-480P'),
             ('wav2vec', 'TencentGameMate/chinese-wav2vec2-base'),
             ('infinitetalk', 'MeiGen-AI/InfiniteTalk'),
         ]
@@ -40,12 +41,13 @@ class AvatarGenerator:
             if not model_path.exists():
                 logger.info(f'Downloading {key} from {repo}...')
                 try:
-                    subprocess.run([
-                        'huggingface-cli', 'download', repo,
-                        '--local-dir', str(model_path)
-                    ], check=True)
-                except subprocess.CalledProcessError:
-                    logger.warning(f'Failed to download {repo}. Continuing...')
+                    snapshot_download(
+                        repo_id=repo,
+                        local_dir=str(model_path),
+                        repo_type='model'
+                    )
+                except Exception as e:
+                    logger.warning(f'Failed to download {repo}: {e}')
 
     def generate(
         self,
