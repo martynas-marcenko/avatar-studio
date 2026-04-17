@@ -28,8 +28,9 @@ def cli():
 @click.option('--prompt', type=str, default='', help='Description of the avatar (optional)')
 @click.option('--gpu-mem', type=click.Choice(['full', 'low']), default='full', help='GPU memory optimization')
 @click.option('--no-download', is_flag=True, help='Skip model download check')
+@click.option('--remote', type=str, help='RunPod endpoint URL (or set AVATAR_STUDIO_REMOTE env var)')
 def generate(image, video, audio, output, duration, resolution, steps, motion_frames,
-             audio_cfg, text_cfg, prompt, gpu_mem, no_download):
+             audio_cfg, text_cfg, prompt, gpu_mem, no_download, remote):
     """Generate an avatar video from image/video + audio."""
 
     if not image and not video:
@@ -43,14 +44,25 @@ def generate(image, video, audio, output, duration, resolution, steps, motion_fr
     # Setup
     config = Config()
     logger.info(f'Avatar Studio v0.1.0')
-    logger.info(f'Models directory: {config.models_dir}')
+
+    # Check for remote endpoint
+    remote_endpoint = remote or os.getenv('AVATAR_STUDIO_REMOTE')
+    if remote_endpoint:
+        logger.info(f'Using remote endpoint: {remote_endpoint}')
+    else:
+        logger.info(f'Models directory: {config.models_dir}')
 
     # Create output directory
     output_path = Path(output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Initialize generator
-    generator = AvatarGenerator(config, gpu_mem=gpu_mem, download_models=(not no_download))
+    generator = AvatarGenerator(
+        config,
+        gpu_mem=gpu_mem,
+        download_models=(not no_download and not remote_endpoint),
+        remote_endpoint=remote_endpoint
+    )
 
     # Generate
     try:

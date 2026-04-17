@@ -1,29 +1,40 @@
 """Video generation logic using Infinite Talk."""
 
 import json
+import base64
 import subprocess
 from pathlib import Path
 from typing import Optional
 from loguru import logger
 from huggingface_hub import snapshot_download
+import requests
 from .config import Config
 
 
 class AvatarGenerator:
     """Handles video generation using Infinite Talk."""
 
-    def __init__(self, config: Config, gpu_mem: str = 'full', download_models: bool = True):
+    def __init__(
+        self,
+        config: Config,
+        gpu_mem: str = 'full',
+        download_models: bool = True,
+        remote_endpoint: Optional[str] = None
+    ):
         self.config = config
         self.gpu_mem = gpu_mem
+        self.remote_endpoint = remote_endpoint
         self.infinitetalk_repo = Path.home() / 'Documents/web-projects/InfiniteTalk'
 
-        if not self.infinitetalk_repo.exists():
+        if remote_endpoint:
+            logger.info(f'Using remote RunPod endpoint: {remote_endpoint}')
+        elif not self.infinitetalk_repo.exists():
             raise RuntimeError(
                 f'InfiniteTalk repo not found at {self.infinitetalk_repo}\n'
                 'Clone it first: git clone https://github.com/MeiGen-AI/InfiniteTalk.git'
             )
 
-        if download_models:
+        if download_models and not remote_endpoint:
             self._ensure_models()
 
     def _ensure_models(self):
@@ -48,6 +59,70 @@ class AvatarGenerator:
                     )
                 except Exception as e:
                     logger.warning(f'Failed to download {repo}: {e}')
+
+    def _call_remote_endpoint(
+        self,
+        input_path: str,
+        audio_path: str,
+        output_path: str,
+        duration: int,
+        resolution: str,
+        steps: int,
+        audio_cfg: float,
+        text_cfg: float,
+        prompt: Optional[str]
+    ) -> str:
+        """Call remote RunPod endpoint to generate video."""
+        logger.info(f'Sending job to RunPod endpoint...')
+
+        # Read input files and encode as base64
+        with open(input_path, 'rb') as f:
+            image_b64 = base64.b64encode(f.read()).decode()
+
+        with open(audio_path, 'rb') as f:
+            audio_b64 = base64.b64encode(f.read()).decode()
+
+        # Prepare job input
+        job_input = {
+            'image': image_b64,
+            'audio': audio_b64,
+            'duration': duration,
+            'resolution': resolution,
+            'steps': steps,
+            'audio_cfg': audio_cfg,
+            'text_cfg': text_cfg,
+            'prompt': prompt or 'A professional talking avatar'
+        }
+
+        payload = {'input': job_input}
+
+        try:
+            # Send request to RunPod endpoint
+            response = requests.post(
+                self.remote_endpoint,
+                json=payload,
+                timeout=300  # 5 minute timeout for generation
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            if 'error' in result:
+                raise RuntimeError(f'Generation failed: {result["error"]}')
+
+            # Extract video from result
+            if 'output' in result and 'video' in result['output']:
+                video_b64 = result['output']['video']
+                # Decode and save video
+                video_data = base64.b64decode(video_b64)
+                with open(output_path, 'wb') as f:
+                    f.write(video_data)
+                logger.info(f'✓ Generated video saved to {output_path}')
+                return output_path
+            else:
+                raise RuntimeError(f'Unexpected response format: {result}')
+
+        except requests.RequestException as e:
+            raise RuntimeError(f'Failed to call RunPod endpoint: {e}')
 
     def generate(
         self,
@@ -81,6 +156,19 @@ class AvatarGenerator:
         Returns:
             Path to generated video
         """
+
+        if self.remote_endpoint:
+            return self._call_remote_endpoint(
+                input_path=input_path,
+                audio_path=audio_path,
+                output_path=output_path,
+                duration=duration,
+                resolution=resolution,
+                steps=steps,
+                audio_cfg=audio_cfg,
+                text_cfg=text_cfg,
+                prompt=prompt
+            )
 
         # Create input JSON config
         if not prompt:
