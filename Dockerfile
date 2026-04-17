@@ -41,8 +41,9 @@ RUN pip install -q \
     tensordict \
     einops \
     easydict \
-    xfuser \
-    flash-attn
+    xfuser
+# Install flash-attn separately (requires torch from previous step)
+RUN pip install -q flash-attn
 
 # Copy handler
 COPY runpod_handler.py /app/runpod_handler.py
