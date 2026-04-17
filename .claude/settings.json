@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "bash": {
+      "allow": [
+        "python",
+        "pip",
+        "huggingface-cli",
+        "ffmpeg",
+        "git",
+        "mkdir",
+        "ls",
+        "cd",
+        "chmod"
+      ]
+    }
+  }
+}
