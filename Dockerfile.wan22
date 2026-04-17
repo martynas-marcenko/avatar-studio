@@ -1,0 +1,30 @@
+FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    git \
+    ffmpeg \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --upgrade pip && pip install -q \
+    runpod \
+    diffusers \
+    transformers \
+    accelerate \
+    safetensors \
+    huggingface_hub \
+    soundfile \
+    librosa \
+    opencv-python \
+    imageio \
+    imageio-ffmpeg \
+    ftfy
+
+COPY runpod_handler_wan22.py /app/runpod_handler.py
+
+RUN mkdir -p /root/.cache/huggingface
+
+CMD ["python", "-u", "/app/runpod_handler.py"]

@@ -1,0 +1,60 @@
+name: Build and push Wan2.2 image
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'Dockerfile.wan22'
+      - 'runpod_handler_wan22.py'
+      - '.github/workflows/build-push-wan22.yml'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase image name
+        id: image
+        run: echo "name=$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Build and push Wan2.2 image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.wan22
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:wan22
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:wan22-${{ github.sha }}
+          cache-from: type=gha,scope=wan22
+          cache-to: type=gha,mode=max,scope=wan22
