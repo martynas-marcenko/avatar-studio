@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip install --upgrade pip && pip install -q \
     runpod \
-    diffusers \
+    git+https://github.com/huggingface/diffusers.git \
     transformers \
     accelerate \
     safetensors \

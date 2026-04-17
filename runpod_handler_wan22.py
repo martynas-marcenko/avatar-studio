@@ -13,7 +13,7 @@ from diffusers.utils import export_to_video, load_image
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-MODEL_ID = "Wan-AI/Wan2.2-S2V-14B-Diffusers"
+MODEL_ID = "tolgacangoz/Wan2.2-S2V-14B-Diffusers"
 _pipe = None
 
 
