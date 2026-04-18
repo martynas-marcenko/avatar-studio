@@ -36,10 +36,10 @@ def _get_pipeline():
     logger.info(f"Loading components from {MODEL_ID}...")
     audio_encoder = Wav2Vec2ForCTC.from_pretrained(
         MODEL_ID, subfolder="audio_encoder", torch_dtype=torch.float32
-    )
+    ).to("cuda")
     vae = AutoencoderKLWan.from_pretrained(
         MODEL_ID, subfolder="vae", torch_dtype=torch.float32
-    )
+    ).to("cuda")
 
     logger.info("Assembling pipeline...")
     _pipe = WanSpeechToVideoPipeline.from_pretrained(
