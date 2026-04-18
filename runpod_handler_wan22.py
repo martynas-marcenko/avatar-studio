@@ -47,8 +47,9 @@ def _get_pipeline():
         vae=vae,
         audio_encoder=audio_encoder,
         torch_dtype=torch.bfloat16,
+        low_cpu_mem_usage=False,
     )
-    _pipe.enable_model_cpu_offload()
+    _pipe.to("cuda")
 
     try:
         _pipe.transformer.set_attention_backend("flash")
