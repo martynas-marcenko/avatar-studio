@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip install --upgrade pip && pip install -q \
     runpod \
-    git+https://github.com/huggingface/diffusers.git \
+    git+https://github.com/tolgacangoz/diffusers.git@integrations/wan2.2-s2v \
     transformers \
     accelerate \
     safetensors \
